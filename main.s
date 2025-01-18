@@ -6,22 +6,30 @@ section .data
 address:
   dw 2
   dw 0
-  db 7
-  db 7
-  db 7
-  db 7
-  dd 0 
-  dd 0 
-
-
-packet: 
+  db 8
   db 8 
-  db 0 
+  db 8 
+  db 8 
+  dd 0 
+  dd 0 
+
+
+  ;0000  92 b7 90 3b f6 64 ec 2e 98 c0 e5 f1 08 00 45 00
+  ;0010  00 1c ef 69 40 00 40 01 85 51 ac 14 0a 02 08 08
+  ;0020  08 08 08 00 de ad be ef aa bb
+
+packet:
+  db 8            
+  db 0            
 
 checksum: 
   dw 9 
-  dw 0 
-  dw 1
+  dw 0
+  dw 0
+
+content: 
+  db 0xDE, 0xAD, 0xBE, 0xEF, 0xAA, 0xBB, 0xCC, 0xDD ; bourage
+
 
 buffer: 
   times 1024 db 0ffh
@@ -53,10 +61,17 @@ _start:
   mov r9, 16
   syscall
 
-  mov rax, [buffer]
-  mov rdi,tmp 
-  call itoa
+  mov rax, 45
+  mov rdi, r12
+  mov rsi, buffer
+  mov rdx, 1024
+  mov r10, 0
+  mov r8, 0
+  mov r9, 0
+  syscall
 
+  cmp word [buffer + 20], 0
+  jne end
 
   mov rax, 1
   mov rdi, 1
@@ -68,7 +83,11 @@ _start:
   mov rdi, 0
   syscall
 
+end:
 
+  mov rax, 60
+  mov rdi, 1
+  syscall
 
 itoa:
     ; Paramètres d'entrée :
