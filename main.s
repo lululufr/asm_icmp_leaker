@@ -14,22 +14,19 @@ address:
   dd 0 
 
 
-  ;0000  92 b7 90 3b f6 64 ec 2e 98 c0 e5 f1 08 00 45 00
-  ;0010  00 1c ef 69 40 00 40 01 85 51 ac 14 0a 02 08 08
-  ;0020  08 08 08 00 de ad be ef aa bb
 
 packet:
-  db 8            
-  db 0            
+  db 8            ; type
+  db 0            ; code
+           ; code
 
 checksum: 
   dw 9 
   dw 0
-  dw 0
+  dw 1
 
-content: 
-  db 0xDE, 0xAD, 0xBE, 0xEF, 0xAA, 0xBB, 0xCC, 0xDD ; bourage
-
+data:
+ db 0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00 
 
 buffer: 
   times 1024 db 0ffh
@@ -60,6 +57,7 @@ _start:
   mov r8, address
   mov r9, 16
   syscall
+
 
   mov rax, 45
   mov rdi, r12
