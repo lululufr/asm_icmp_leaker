@@ -52,7 +52,7 @@ _start:
   mov rax, 44
   mov rdi, r12
   mov rsi, packet
-  mov rdx, 8
+  mov rdx, 16 ; valeur a modifier en focntion de la data ( mini 8)
   mov r10, 0
   mov r8, address
   mov r9, 16
