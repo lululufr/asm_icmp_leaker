@@ -3,10 +3,9 @@ global _start
 section .data
     mode_open dq 0644o
     flags_open dq 0o
-    size_file_ping dw 48
-
-
-
+    size_file_ping dq 0x30
+    balise_debut dq '<<<<start_file>>>>'
+    balise_fin dq '<<<<end_file>>>>'
 
 
 address:
@@ -66,7 +65,8 @@ good:
 section .bss
   tmp resb 64
   buffer_file resb 48 
-  filesize resb 8
+  file_size resb 8
+  file_descriptor resq 1
 
 
 section .text
@@ -80,9 +80,6 @@ _start:
   pop rdi
   xor rdi, rdi
 
-  pop rdi ; nom fichier
-  call read_file
-
   mov rax, 41
   mov rdi, 2
   mov rsi, 3
@@ -91,30 +88,14 @@ _start:
 
   mov r12, rax
 
-  mov rax, packet
-  call icmp_checksum
+  ;mov rax, packet
+  ;call icmp_checksum
   
-  mov rax, 44
-  mov rdi, r12
-  mov rsi, packet
-  mov rdx, 48 ; valeur a modifier en focntion de la data ( mini 8)
-  mov r10, 0
-  mov r8, address
-  mov r9, 16
-  syscall
+  pop rdi ; nom fichier arg
+  call send_file     
 
-
-  mov rax, 45
-  mov rdi, r12
-  mov rsi, buffer
-  mov rdx, 1024
-  mov r10, 0
-  mov r8, 0
-  mov r9, 0
-  syscall
-
-  cmp word [buffer + 20], 0
-  jne error
+  ;cmp word [buffer + 20], 0
+  ;jne error
 
   mov rax, 1
   mov rdi, 1
@@ -133,6 +114,10 @@ error:
   syscall
 
 
+
+  ; ------------------------------------------
+  ; ------------------------------------------
+  ; fonctions !!!
 icmp_checksum:
 	; Paramètres d'entrée :
 	; RAX : Adresse du buffer sur lequel appliquer le checksum (32 octets)
@@ -167,7 +152,7 @@ icmp_checksum:
 	not rdx
 
 	; On ne garde que les 2 derniers octets
-        and rdx, 0xffff
+  and rdx, 0xffff
 
 	; Ecriture du checksum dans le paquet
 	lea rcx, [rax + 2]
@@ -180,44 +165,102 @@ icmp_checksum:
 
 ret
 
-read_file: 
+send_file: 
+
+  ;ouverture du fichier 
   mov rax, 2
   mov rsi, [flags_open]
   mov rdx, [mode_open]
   syscall
 
-  ; Vérifier si l'ouverture ok
-  cmp rax, 0
-  jl error
+  ; verification des erreurs
+  test rax, rax 
+  js error
 
-  ; Sauvegarder le descripteur de fichier
-  mov r8, rax
+  ;fd dans une var
+  mov [file_descriptor], rax
+  ;========= taille du fichier =========
 
-  ; Lecture du fichier
-  mov rax, 0
-  mov rdi, r8
-  mov rsi, data
-  mov dx, word[size_file_ping]
+  ;taille du fichier
+  mov rax,8
+  mov rdi, [file_descriptor]
+  mov rsi, 0
+  mov rdx, 1
   syscall
 
-  ; Sauvegarder la taille du fichier
-  mov qword [filesize], rax
+  mov rbx, rax
 
-  ; Fermeture du fichier
-  mov rax, 3
-  mov rdi, r8
+  mov rax,8
+  mov rdi,[file_descriptor]
+  mov rsi, 0
+  mov rdx, 2
   syscall
 
-  ; Affichage du contenu du fichier
-  mov rax, 1
-  mov rdi, 1
-  mov rsi, data
-  mov rdx, [filesize]
+  mov [file_size], rax ;save
+
+  ;reset du curseur
+  mov rax, 8
+  mov rdi, [file_descriptor]
+  mov rsi,0
+  mov rdx,0
   syscall
 
+  ;========= lecture/envoi =========
+  xor r15,r15
+    read_loop:
 
+
+      ; Lecture du fichier et et opn met dans la var data 48b
+      mov rax, 0
+      mov rdi, [file_descriptor]
+      mov rsi, data
+      mov rdx, [size_file_ping]
+      syscall
+
+      ; Affichage du contenu du fichier, just epour debug 
+      mov rax, 1
+      mov rdi, 1
+      mov rsi, data
+      mov rdx, [size_file_ping]
+      syscall
 
   
+      mov rax, packet
+      call icmp_checksum
 
+      mov rax, 44
+      mov rdi, r12
+      mov rsi, packet
+      mov rdx, 64 ; valeur a modifier en focntion de la data ( mini 8)
+      mov r10, 0
+      mov r8, address
+      mov r9, 16
+      syscall     
+
+      add r15, 48
+      cmp r15, [file_size]
+      jge end_read_loop   
+      jmp read_loop
+    end_read_loop:
+ret
+
+
+ping_init: 
+  ; arg rax taille du fichier
+
+  mov rax, [balise_debut]
+  mov [data], rax
+
+  mov rax, packet
+  call icmp_checksum
+
+  mov rax, 44
+  mov rdi, r12
+  mov rsi, packet
+  mov rdx, 32 ; valeur a modifier en focntion de la data ( mini 8)
+  mov r10, 0
+  mov r8, address
+  mov r9, 16
+  syscall     
 
 ret
