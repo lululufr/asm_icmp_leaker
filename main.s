@@ -28,31 +28,9 @@ packet:
   dw      0x0000
   dw      0x0000
 
-data:
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
-  dw      0x0000
+
+data: 
+  times 24 dw 0x0000
 
 
 buffer: 
@@ -205,6 +183,8 @@ send_file:
   ;========= lecture/envoi =========
   xor r15,r15
     read_loop:
+      ;reset data to 0
+      call reset_data
 
       ; Lecture du fichier et et opn met dans la var data 48b
       mov rax, 0
@@ -220,6 +200,9 @@ send_file:
       mov rdx, [size_file_ping]
       syscall
 
+
+
+
       mov rax, packet
       call icmp_checksum
 
@@ -231,6 +214,8 @@ send_file:
       mov r8, address
       mov r9, 16
       syscall     
+
+
 
       add r15, 48
       cmp r15, [file_size]
@@ -258,4 +243,24 @@ ping_init:
   mov r9, 16
   syscall     
 
+ret
+
+
+reset_data:
+  loop_reset:
+    ; On met RCX = nombre de mots à écrire : 24
+    mov   rcx, 24
+    lea   rdi, [rel data]
+    xor   eax, eax
+
+    rep   stosw
+
+    xor rcx, rcx
+    
+  end_reset_loop:
+  xor r8,r8
+  xor r9,r9
+
+	lea rcx, [packet + 2]
+	mov word[rcx], 0x0000
 ret
