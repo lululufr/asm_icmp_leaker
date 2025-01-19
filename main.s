@@ -6,27 +6,49 @@ section .data
 address:
   dw 2
   dw 0
-  db 8
-  db 8 
-  db 8 
-  db 8 
+  db 7
+  db 7
+  db 7
+  db 7
   dd 0 
   dd 0 
-
-
 
 packet:
-  db 8            ; type
-  db 0            ; code
-           ; code
-
-checksum: 
-  dw 9 
-  dw 0
-  dw 1
+  dw      0x0008
+  dw      0x0000; Checksum à 0
+  dw      0x000a
+  dw      0x0002
+  dw      0xad18
+  dw      0x8c67
+  dw      0x0000
+  dw      0x0000
 
 data:
- db 0xDE, 0xAD, 0xBE, 0xEF, 0x00, 0x00, 0x00, 0x00 
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+  dw      0x0000
+
 
 buffer: 
   times 1024 db 0ffh
@@ -48,7 +70,10 @@ _start:
   syscall
 
   mov r12, rax
-  not word [checksum]
+
+  mov rax, packet
+  call icmp_checksum
+  
   mov rax, 44
   mov rdi, r12
   mov rsi, packet
@@ -87,48 +112,51 @@ end:
   mov rdi, 1
   syscall
 
-itoa:
-    ; Paramètres d'entrée :
-    ; EAX : le nombre à convertir
-    ; RDX : adresse de la chaîne de sortie (tampon)
 
-    push rbx                ; Sauvegarder EBX
-    push rsi                ; Sauvegarder ESI
-    push rdi                ; Sauvegarder EDI
+icmp_checksum:
+	; Paramètres d'entrée :
+	; RAX : Adresse du buffer sur lequel appliquer le checksum (32 octets)
 
-    mov rdi, rdx            ; EDI pointe vers le tampon de sortie
-    mov rcx, 0              ; ECX compte les caractères
-    test rax, rax           ; Tester si le nombre est négatif
-    jge .positive           ; Si positif, sauter à la partie positive
+	push rbx
+	push rcx
+	push rdx
 
-    ; Gérer le signe négatif
-    mov byte [rdi], '-'     ; Ajouter '-' au tampon
-    inc rdi                 ; Avancer le pointeur
-    neg rax                 ; Rendre le nombre positif
+	xor rbx, rbx
+	xor rcx, rcx
+	xor rdx, rdx
 
-.positive:
-    ; Conversion du nombre en base 10
-    mov rbx, 10             ; Diviseur (base 10)
-.next_digit:
-    xor rdx, rdx            ; Effacer EDX pour éviter les restes
-    div rbx                 ; Diviser EAX par 10, quotient dans EAX, reste dans EDX
-    add dl, '0'             ; Convertir le chiffre en caractère ASCII
-    push rdx                 ; Empiler le caractère
-    inc rcx                 ; Incrémenter le compteur de caractères
-    test rax, rax           ; Vérifier si EAX est zéro
-    jnz .next_digit         ; Reboucler s'il reste des chiffres
+	
+	loop_addition:
+		mov bx, word[rax + rcx]
+		add rdx, rbx
 
-    ; Écrire les chiffres au tampon
-.write_digits:
-    pop rax                  ; Dépiler un caractère
-    mov [rdi], al           ; Écrire dans le tampon
-    inc rdi                 ; Avancer le pointeur
-    loop .write_digits      ; Répéter jusqu'à ce que tous les caractères soient écrits
+		add rcx, 2
 
-    ; Ajouter le caractère de fin de chaîne
-    mov byte [rdi], 0       ; Terminaison de chaîne avec 0
+		cmp rcx, 63
+		jle loop_addition
 
-    pop rdi                 ; Restaurer les registres
-    pop rsi
-    pop rbx
-    ret                     ; Retour
+
+	mov rbx, rdx
+	
+
+	; Addition du 5ème nibble au 1er
+	shr rbx, 16
+	add rdx, rbx
+
+	; NOT du checksum
+	not rdx
+
+	; On ne garde que les 2 derniers octets
+        and rdx, 0xffff
+
+	; Ecriture du checksum dans le paquet
+	lea rcx, [rax + 2]
+	mov [rcx], dx
+
+
+	pop rdx
+	pop rcx
+	pop rbx
+
+	ret
+
