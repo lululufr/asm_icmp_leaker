@@ -87,9 +87,6 @@ _start:
   syscall
 
   mov r12, rax
-
-  ;mov rax, packet
-  ;call icmp_checksum
   
   pop rdi ; nom fichier arg
   call send_file     
@@ -121,6 +118,7 @@ error:
 icmp_checksum:
 	; Paramètres d'entrée :
 	; RAX : Adresse du buffer sur lequel appliquer le checksum (32 octets)
+
 
 	push rbx
 	push rcx
@@ -157,7 +155,6 @@ icmp_checksum:
 	; Ecriture du checksum dans le paquet
 	lea rcx, [rax + 2]
 	mov [rcx], dx
-
 
 	pop rdx
 	pop rcx
@@ -209,7 +206,6 @@ send_file:
   xor r15,r15
     read_loop:
 
-
       ; Lecture du fichier et et opn met dans la var data 48b
       mov rax, 0
       mov rdi, [file_descriptor]
@@ -224,7 +220,6 @@ send_file:
       mov rdx, [size_file_ping]
       syscall
 
-  
       mov rax, packet
       call icmp_checksum
 
