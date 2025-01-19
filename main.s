@@ -4,17 +4,17 @@ section .data
     mode_open dq 0644o
     flags_open dq 0o
     size_file_ping dq 0x30
-    balise_debut dq '<<<<start_file>>>>'
-    balise_fin dq '<<<<end_file>>>>'
+    balise_debut dq '<<staf>>'
+    balise_fin dq '<<endf>>'
 
 
 address:
   dw 2
   dw 0
-  db 8
-  db 8
-  db 8
-  db 8
+  db 127
+  db 0
+  db 0
+  db 1
   dd 0 
   dd 0 
 
@@ -222,6 +222,30 @@ send_file:
       jge end_read_loop   
       jmp read_loop
     end_read_loop:
+
+  ;flag de fin du programme
+  ;
+
+      call reset_data
+     
+      mov rax, [balise_fin]
+      mov [data], rax
+
+      mov rax, packet
+      call icmp_checksum
+
+      mov rax, 44
+      mov rdi, r12
+      mov rsi, packet
+      mov rdx, 48 ; valeur a modifier en focntion de la data ( mini 8)
+      mov r10, 0
+      mov r8, address
+      mov r9, 16
+      syscall     
+
+
+
+
 ret
 
 
@@ -261,6 +285,7 @@ reset_data:
   xor r8,r8
   xor r9,r9
 
+  ;reset du checksum
 	lea rcx, [packet + 2]
 	mov word[rcx], 0x0000
 ret

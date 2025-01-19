@@ -2,7 +2,7 @@ import socket
 
 
 def parse_icmp_packet(packet):
-    data = packet[28:]  # data
+    data = packet[32:]  # data
     return data
 
 
@@ -28,12 +28,12 @@ def capture_icmp(target_ip, output_file):
                 data_buffer += data
                 print(f"Reçu {len(data)} octets de {src_ip}")
 
-                if b"END_OF_FILE" in data:
+                if b"<<endf>>" in data:
                     break
 
         # Sauvegarde les données dans un fichier
         with open(output_file, "wb") as f:
-            f.write(data_buffer.replace(b"END_OF_FILE", b""))
+            f.write(data_buffer.replace(b"<<endf>>", b""))
         print(f"Données reconstituées et sauvegardées dans {output_file}")
 
     except KeyboardInterrupt:
