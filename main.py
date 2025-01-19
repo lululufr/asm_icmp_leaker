@@ -7,7 +7,6 @@ def parse_icmp_packet(packet):
 
 
 def capture_icmp(target_ip, output_file):
-    """Capture les paquets ICMP envoyés à l'adresse spécifiée et extrait les données."""
     print(f"Capture des paquets ICMP pour l'adresse {target_ip}...")
 
     try:
