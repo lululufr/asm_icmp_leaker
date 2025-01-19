@@ -1,15 +1,21 @@
 global _start 
 
 section .data
+    mode_open dq 0644o
+    flags_open dq 0o
+    size_file_ping dw 48
+
+
+
 
 
 address:
   dw 2
   dw 0
-  db 7
-  db 7
-  db 7
-  db 7
+  db 8
+  db 8
+  db 8
+  db 8
   dd 0 
   dd 0 
 
@@ -59,10 +65,24 @@ good:
 
 section .bss
   tmp resb 64
+  buffer_file resb 48 
+  filesize resb 8
+
 
 section .text
 
 _start:
+
+  pop rax 
+  cmp rax, 2
+  jne error
+
+  pop rdi
+  xor rdi, rdi
+
+  pop rdi ; nom fichier
+  call read_file
+
   mov rax, 41
   mov rdi, 2
   mov rsi, 3
@@ -77,7 +97,7 @@ _start:
   mov rax, 44
   mov rdi, r12
   mov rsi, packet
-  mov rdx, 16 ; valeur a modifier en focntion de la data ( mini 8)
+  mov rdx, 48 ; valeur a modifier en focntion de la data ( mini 8)
   mov r10, 0
   mov r8, address
   mov r9, 16
@@ -94,7 +114,7 @@ _start:
   syscall
 
   cmp word [buffer + 20], 0
-  jne end
+  jne error
 
   mov rax, 1
   mov rdi, 1
@@ -106,7 +126,7 @@ _start:
   mov rdi, 0
   syscall
 
-end:
+error:
 
   mov rax, 60
   mov rdi, 1
@@ -158,5 +178,46 @@ icmp_checksum:
 	pop rcx
 	pop rbx
 
-	ret
+ret
 
+read_file: 
+  mov rax, 2
+  mov rsi, [flags_open]
+  mov rdx, [mode_open]
+  syscall
+
+  ; Vérifier si l'ouverture ok
+  cmp rax, 0
+  jl error
+
+  ; Sauvegarder le descripteur de fichier
+  mov r8, rax
+
+  ; Lecture du fichier
+  mov rax, 0
+  mov rdi, r8
+  mov rsi, data
+  mov dx, word[size_file_ping]
+  syscall
+
+  ; Sauvegarder la taille du fichier
+  mov qword [filesize], rax
+
+  ; Fermeture du fichier
+  mov rax, 3
+  mov rdi, r8
+  syscall
+
+  ; Affichage du contenu du fichier
+  mov rax, 1
+  mov rdi, 1
+  mov rsi, data
+  mov rdx, [filesize]
+  syscall
+
+
+
+  
+
+
+ret
