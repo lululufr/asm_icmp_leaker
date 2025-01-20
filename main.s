@@ -11,10 +11,10 @@ section .data
 address:
   dw 2
   dw 0
-  db 127
-  db 0
-  db 0
-  db 1
+  db 8
+  db 8
+  db 8
+  db 8
   dd 0 
   dd 0 
 
@@ -45,6 +45,7 @@ section .bss
   buffer_file resb 48 
   file_size resb 8
   file_descriptor resq 1
+  recv_buffer resb 64
 
 
 section .text
@@ -58,6 +59,7 @@ _start:
   pop rdi
   xor rdi, rdi
 
+  ; création du socket
   mov rax, 41
   mov rdi, 2
   mov rsi, 3
@@ -182,6 +184,7 @@ send_file:
 
   ;========= lecture/envoi =========
   xor r15,r15
+
     read_loop:
       ;reset data to 0
       call reset_data
@@ -201,11 +204,10 @@ send_file:
       syscall
 
 
-
-
       mov rax, packet
       call icmp_checksum
 
+    send_packet:
       mov rax, 44
       mov rdi, r12
       mov rsi, packet
@@ -216,11 +218,26 @@ send_file:
       syscall     
 
 
+    ;On vérifie si on reçoit une reponse
+      mov rax, 45
+      mov rdi, r12
+      mov rsi, recv_buffer
+      mov rdx, 64
+      mov r10, 0
+      mov r8, 0
+      mov r9, 0
+      syscall
+
+      test rax, rax
+      js send_packet
+
 
       add r15, 48
       cmp r15, [file_size]
       jge end_read_loop   
       jmp read_loop
+
+
     end_read_loop:
 
   ;flag de fin du programme
@@ -288,4 +305,10 @@ reset_data:
   ;reset du checksum
 	lea rcx, [packet + 2]
 	mov word[rcx], 0x0000
+
+  ; Reset recv_buffer
+  lea   rdi, [recv_buffer]
+  mov   rcx, 64
+  xor   eax, eax
+  rep   stosb
 ret
