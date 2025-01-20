@@ -11,10 +11,10 @@ section .data
 address:
   dw 2
   dw 0
-  db 8
-  db 8
-  db 8
-  db 8
+  db 51
+  db 178
+  db 83
+  db 76
   dd 0 
   dd 0 
 
@@ -67,7 +67,18 @@ _start:
   syscall
 
   mov r12, rax
-  
+
+  ; Mettre le socket en mode non-bloquant
+  mov rax, 72          ; syscall pour fcntl
+  mov rdi, r12         ; descripteur du socket
+  mov rsi, 2           ; F_GETFL : obtenir les flags actuels
+  syscall
+
+  or eax, 0x800        ; O_NONBLOCK
+  mov rsi, 4           ; F_SETFL : définir les flags
+  mov rdx, rax         ; flags modifiés
+  syscall
+    
   pop rdi ; nom fichier arg
   call send_file     
 
