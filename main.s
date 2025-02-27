@@ -11,10 +11,10 @@ section .data
 address:
   dw 2
   dw 0
-  db 51
-  db 178
-  db 83
-  db 76
+  db 0
+  db 0
+  db 0
+  db 0
   dd 0 
   dd 0 
 
@@ -53,11 +53,16 @@ section .text
 _start:
 
   pop rax 
-  cmp rax, 2
+  cmp rax, 3
   jne error
 
   pop rdi
   xor rdi, rdi
+
+  ;parsing de l'ip
+  pop rsi
+  mov rdi, address + 4 
+  call parse_ip
 
   ; création du socket
   mov rax, 41
@@ -70,13 +75,13 @@ _start:
 
   ; Mettre le socket en mode non-bloquant
   mov rax, 72          ; syscall pour fcntl
-  mov rdi, r12         ; descripteur du socket
-  mov rsi, 2           ; F_GETFL : obtenir les flags actuels
+  mov rdi, r12
+  mov rsi, 2
   syscall
 
-  or eax, 0x800        ; O_NONBLOCK
-  mov rsi, 4           ; F_SETFL : définir les flags
-  mov rdx, rax         ; flags modifiés
+  or eax, 0x800
+  mov rsi, 4
+  mov rdx, rax
   syscall
     
   pop rdi ; nom fichier arg
@@ -323,3 +328,29 @@ reset_data:
   xor   eax, eax
   rep   stosb
 ret
+
+
+parse_ip:
+    xor rcx, rcx       
+.next_octet:
+    xor rax, rax      
+.next_char:
+    movzx rdx, byte [rsi]
+    test dl, dl
+    jz .finish
+    inc rsi
+    cmp dl, '.'
+    je .store
+    sub dl, '0'
+    imul eax, 10
+    add eax, edx
+    jmp .next_char
+.store:
+    mov [rdi + rcx], al ; Stocker l'octet
+    inc ecx
+    cmp ecx, 4
+    jb .next_octet
+    ret
+.finish:
+    mov [rdi + rcx], al ; Dernier octet
+    ret
